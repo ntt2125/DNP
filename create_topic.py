@@ -12,3 +12,4 @@ replication_factor = 1
 new_topic = NewTopic(topic_name, num_partitions, replication_factor)
 
 admin_client.create_topics([new_topic])
+
