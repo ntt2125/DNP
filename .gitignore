@@ -1,12 +1,13 @@
 # yolo pretrained weight
-/kafka/consumer/yolov8n.pt
+kafka/consumer/yolov8n.pt
 
 # config file
-/kafka/consumer/consumerConfig.ini
-/kafka/producer/producerConfig.ini
+kafka/consumer/consumerConfig.ini
+
+kafka/producer/producerConfig.ini
 
 #input vid test
-/kafka/producer/vid.mp4
+kafka/producer/vid.mp4
 
 
 
