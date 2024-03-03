@@ -34,13 +34,13 @@ if __name__ == '__main__':
             consumer.assign(partitions)
 
     # Subscribe to topic
-    topic = "test"
+    topic = "dnp_1"
     consumer.subscribe([topic], on_assign=reset_offset)
     
     # model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True, trust_repo=True)
     # Load model
     model = YOLO("yolov8n.pt")
-
+    image_array = []
     # Poll for new messages from Kafka and print them.
     try:
         while True:
@@ -59,20 +59,24 @@ if __name__ == '__main__':
                     topic=msg.topic(), key=msg.key().decode('utf-8'), ))
                 stream = BytesIO(msg.value())
                 image_cv2 = cv2.imdecode(np.frombuffer(msg.value(), 'u1'), cv2.IMREAD_UNCHANGED)
-                # cv2.imshow('frame',image_cv2)
+                height, width, _ = image_cv2.shape
+                size = (width, height)
+                image_array.append(image_cv2)
                 stream.close()
-                results = results = model(image_cv2, save=True, show=True, project="output/detect", name='inference', exist_ok=False)
-                # results_string = str(results.pandas())
-                print(results)
-                # print(image_cv2.shape)
-                # cv2.imshow('frame',image_cv2)
-                # if cv2.waitKey(25) & 0xFF == ord('q'): 
-                #     break
-                # cv2.imwrite('img.jpg',image_cv2)
-                # print(type(image_cv2))
-                # print(image_cv2.dtype)
+                results = results = model(image_cv2, save=False, show=True, project="output/detect", name='inference', exist_ok=False)
+                
+                #* print(results)
+                
+        # out = cv2.VideoWriter('vid_consume.mp4', cv2.VideoWriter_fourcc(*'DIVX'), 15, size)
+        # for i in range(len(image_array)):
+        #     out.write(image_array[i])
+        # out.release
     except KeyboardInterrupt:
         pass
     finally:
         # Leave group and commit final offsets
         consumer.close()
+    out = cv2.VideoWriter('vid_consume.mp4', cv2.VideoWriter_fourcc(*'DIVX'), 15, size)
+    for i in range(len(image_array)):
+        out.write(image_array[i])
+    out.release
