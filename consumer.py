@@ -25,7 +25,7 @@ from mmpose.utils import adapt_mmdet_pipeline
 
 
 class KafkaPoseEstimation:
-    def __init__(self, bootstrap_servers='localhost:9092', detection_topic='detection', bbox_topic = 'bbox', group_id = 'pose_estimation') -> None:
+    def __init__(self, bootstrap_servers='localhost:9092', detection_topic='Frames', bbox_topic = 'Bboxes', group_id = 'pose_estimation') -> None:
         self.bootstrap_servers = bootstrap_servers
         self.detection_topic = detection_topic
         self.bbox_topic = bbox_topic
@@ -35,7 +35,7 @@ class KafkaPoseEstimation:
         
         self.pose_config = 'Config/Pose/Pose_config/rtmpose-m_8xb256-420e_coco-256x192.py'
         self.pose_checkpoint = 'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-m_simcc-aic-coco_pt-aic-coco_420e-256x192-63eb25f7_20230126.pth'
-        self.device = 'cpu'
+        self.device = 'cuda'
         self.draw_heatmap = False
         
         self.radius = 3
@@ -113,49 +113,55 @@ class KafkaPoseEstimation:
         detection_data = None
         bbox_data = None
         count = 1
-        while True:
-            message = self.consumer.poll(1)
-            # print(message)
-            
-            if message is None:
-                print('Waiting....')
-                continue
-            
-            elif message.error():
-                if message.error().code() == KafkaError._PARTITION_EOF:
-                    continue
-                else:
-                    print(message.error())
-                    break
-            
-            stream = BytesIO(message.value())
-            offset = message.offset()
-            
-            # Check the topic and process accordingly
-            if message.topic() == self.detection_topic:
-                frame_data = cv2.imdecode(np.frombuffer(message.value(), 'u1'), cv2.IMREAD_UNCHANGED)
-                detection_data = {'offset': offset, 'image': frame_data}
-                self.detection_data_list.append(detection_data)
+        
+        try: 
+            while True:
+                message = self.consumer.poll(1)
+                # print(message)
                 
-            elif message.topic() == self.bbox_topic:
-                decoded_data = json.loads(message.value().decode('utf-8'))
-                bbox_data = {'offset': decoded_data['offset'], 'detection_results': decoded_data['detection_results']}
-                self.bbox_data_list.append(bbox_data)
+                if message is None:
+                    print('Waiting....')
+                    # continue
                 
-            
-            print(f'len det {len(self.detection_data_list)}, bbox {len(self.bbox_data_list)}')
-            if (len(self.bbox_data_list) >= 1 ) and (len(self.detection_data_list) >= 1):
-                
-                idx = min(count, len(self.bbox_data_list), len(self.detection_data_list)) 
-                idx = idx -1
-                
-                self.process_frames(self.detection_data_list[idx], self.bbox_data_list[idx], idx)
-                count += 1
+                elif message.error():
+                    if message.error().code() == KafkaError._PARTITION_EOF:
+                        continue
+                    else:
+                        print(message.error())
+                        break
+                else: 
+                    # stream = BytesIO(message.value())
+                    offset = message.offset()
+                    
+                    # Check the topic and process accordingly
+                    if message.topic() == self.detection_topic:
+                        frame_data = cv2.imdecode(np.frombuffer(message.value(), 'u1'), cv2.IMREAD_UNCHANGED)
+                        detection_data = {'offset': offset, 'image': frame_data}
+                        self.detection_data_list.append(detection_data)
+                        
+                    elif message.topic() == self.bbox_topic:
+                        decoded_data = json.loads(message.value().decode('utf-8'))
+                        bbox_data = {'offset': decoded_data['offset'], 'detection_results': decoded_data['detection_results']}
+                        self.bbox_data_list.append(bbox_data)
+                        
+                    
+                    print(f'len det {len(self.detection_data_list)}, bbox {len(self.bbox_data_list)}')
+                    if (len(self.bbox_data_list) >= 1 ) and (len(self.detection_data_list) >= 1):
+                        
+                        idx = min(count, len(self.bbox_data_list), len(self.detection_data_list)) 
+                        idx = idx -1
+                        
+                        self.process_frames(self.detection_data_list[idx], self.bbox_data_list[idx], idx)
+                        count += 1
 
-                print(count)
-                # Remove processed detection data
-                # self.detection_data_list = [d for d in self.detection_data_list if d['offset'] != bbox_data['offset']]
-            stream.close()
+                        print(count)
+                        # Remove processed detection data
+                        # self.detection_data_list = [d for d in self.detection_data_list if d['offset'] != bbox_data['offset']]
+                    # stream.close()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self.consumer.close()
             
             
 if __name__ =="__main__":

@@ -4,13 +4,14 @@ from datetime import datetime
 import json
 
 class KafkaFrameProducer:
-    def __init__(self, bootstrap_servers='localhost:9092', topic='detection') -> None:
+    def __init__(self, bootstrap_servers='localhost:9092', topic='Frames') -> None:
         self.bootstrap_servers = bootstrap_servers
         self.topic = topic
         self.producer_config = {
             'bootstrap.servers':self.bootstrap_servers
         }
         self.producer = Producer(self.producer_config)
+        self.count = 0
         
     def delivery_report(self, err, msg):
         if err is not None:
@@ -28,8 +29,6 @@ class KafkaFrameProducer:
     def send_video(self, video_path):
         vidcap = cv2.VideoCapture(video_path)
         
-        self.count = 0
-        
         while True:
             success, image = vidcap.read()
             if not success:
@@ -44,4 +43,4 @@ class KafkaFrameProducer:
 
 if __name__ == "__main__":
     kafka_producer = KafkaFrameProducer()
-    kafka_producer.send_video(video_path='test_vid.mp4')
+    kafka_producer.send_video(video_path='demo_input/video/test_vid.mp4')
