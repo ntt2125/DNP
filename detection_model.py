@@ -2,12 +2,17 @@ from io import BytesIO
 from confluent_kafka import Consumer, KafkaError, Producer, TopicPartition
 from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator
+
 import numpy as np
 import cv2
 import json
 
+from pathlib import Path
+
+from boxmot import DeepOCSORT
+
 class KafkaHumanDetection:
-    def __init__(self, bootstrap_servers='localhost:9092', detection_topic='Frames', result_topic='Bboxes', group_id='detection') -> None:
+    def __init__(self, bootstrap_servers='localhost:9092', detection_topic='topics', result_topic='Bboxes', group_id='detection') -> None:
         self.bootstrap_servers = bootstrap_servers
         self.detection_topic = detection_topic
         self.result_topic = result_topic
@@ -15,6 +20,13 @@ class KafkaHumanDetection:
         self.group_id = group_id 
         self.received_frames = [] # store all received frame
         self.model = YOLO('yolov8n.pt')
+        
+        
+        # self.tracker = DeepOCSORT(
+        #     model_weights=Path('osnet_x0_25_msmt17.pt'), # which ReID model to use
+        #     device='cuda:0',
+        #     fp16=False,
+        # )
         
         #======== CONSUMER ===========
         
@@ -58,12 +70,18 @@ class KafkaHumanDetection:
             for box in boxes:
                 b = box.xyxy[0].cpu().numpy() # get box coordinates (l, t, r, b)
                 
+                
                 bboxes.append(b)
         #! Check if bboxes is empty or not
         if not (not bboxes):
             bboxes = np.stack(bboxes, axis=0)
             
         detection_data['detection_results'] = bboxes
+        
+        # print(bboxes)
+        # print(np.array(bboxes))
+        # tracks = self.tracker.update(np.array(bboxes), frame_data)
+        # detection_data['tracks'] =tracks
         
         self.producer.produce(self.result_topic, value = json.dumps(detection_data, default=lambda x: x.tolist()).encode('utf-8'), callback=self.delivery_report)
         self.producer.poll(1)
@@ -84,23 +102,23 @@ class KafkaHumanDetection:
                         break
                 else:
                                     
-                    partitions = self.consumer.assignment()
-                    print(f'partitions: {partitions}')
-                    for partition in partitions:
-                        first, last = self.consumer.get_watermark_offsets(partition)
-                        if (last -1) != self.latest_offset:
-                            print(f'first stack offset: {first}, Last stack offset: {last}')
+                    # partitions = self.consumer.assignment()
+                    # print(f'partitions: {partitions}')
+                    # for partition in partitions:
+                    #     first, last = self.consumer.get_watermark_offsets(partition)
+                    #     if (last -1) != self.latest_offset:
+                    #         print(f'first stack offset: {first}, Last stack offset: {last}')
                             
-                            tp = TopicPartition(self.detection_topic, partition=0, offset=last-1)
-                            self.consumer.seek(tp)
+                    #         tp = TopicPartition(self.detection_topic, partition=0, offset=last-1)
+                    #         self.consumer.seek(tp)
                             
-                            self.latest_offset = last -1
+                    #         self.latest_offset = last -1
                     #! What is this for?
                     # stream = BytesIO(message.value())
                     # print(stream)
                     frame_data = cv2.imdecode(np.frombuffer(message.value(), 'u1'), cv2.IMREAD_UNCHANGED)
                     
-                    # self.latest_offset = message.offset() # Get the offset of receive frame
+                    self.latest_offset = message.offset() # Get the offset of receive frame
                     
                     self.frame_count += 1
                     # self.process_frame(frame_data, offset)

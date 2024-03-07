@@ -1,4 +1,4 @@
-from confluent_kafka import Consumer, KafkaError
+from confluent_kafka import Consumer, Producer, KafkaError
 from io import BytesIO
 import json
 import cv2
@@ -35,7 +35,7 @@ class KafkaPoseEstimation:
         
         self.pose_config = 'Config/Pose/Pose_config/rtmpose-m_8xb256-420e_coco-256x192.py'
         self.pose_checkpoint = 'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-m_simcc-aic-coco_pt-aic-coco_420e-256x192-63eb25f7_20230126.pth'
-        self.device = 'cuda'
+        self.device = 'cpu'
         self.draw_heatmap = False
         
         self.radius = 3
@@ -69,7 +69,7 @@ class KafkaPoseEstimation:
     
         
         
-        #====== CONSUMER =======
+        #*====================== CONSUMER =======================
         
         self.consumer_config = {
             'bootstrap.servers': self.bootstrap_servers,
@@ -77,10 +77,37 @@ class KafkaPoseEstimation:
             'auto.offset.reset': 'earliest'
         }
         
-        self.consumer = Consumer(self.consumer_config)
-        self.consumer.subscribe([self.bbox_topic, self.detection_topic])
+        #* Frame's Consumer
+        self.consumer_frames = Consumer(self.consumer_config)
+        self.consumer_frames.subscribe([self.detection_topic])
+
+        #* Bboxes Consumer
+        self.consumer_bboxes = Consumer(self.consumer_config)
+        self.consumer_bboxes.subscribe([self.bbox_topic])
         
-        # 
+        #*========================== PRODUCER =====================
+        self.producer_config = {
+            'bootstrap.servers': self.bootstrap_servers
+        }
+        self.producer = Producer(self.producer_config)
+        
+    
+    def handle_mgs(self, message):
+        is_continue = True
+        
+        if (message is None) :
+            print('Waiting....')
+            return is_continue
+        elif message.error():
+            if message.error().code() == KafkaError._PARTITION_EOF:
+                print('hi')
+                return is_continue
+            else:
+                print(message.error())
+                is_continue = False
+                return is_continue
+        else:
+            return message
     
     def process_frames(self, detection_data, bbox_data, offset):
         
@@ -107,7 +134,13 @@ class KafkaPoseEstimation:
                     kpt_thr=self.kpt_thr
                 )
             
+        
+        #* Send to the topic record
+        
+            
         print(f'Pose estimation for frame at offset {offset}')
+        
+        
         
     def receive_and_process_frames(self):
         detection_data = None
@@ -116,33 +149,81 @@ class KafkaPoseEstimation:
         
         try: 
             while True:
-                message = self.consumer.poll(1)
-                # print(message)
+                detection_data = None
+                bbox_data = None
                 
-                if message is None:
+                message_frames = self.consumer_frames.poll(1)
+                message_bboxes = self.consumer_bboxes.poll(1)
+                
+                # print(message_frames)
+                message_frames = self.handle_mgs(message=message_frames)
+                message_bboxes = self.handle_mgs(message=message_bboxes)
+                
+                if message_frames is True :
+                    #! print('continue')
+                    continue
+                elif not message_frames:
+                    #! print('break')
+                    break
+                else:
+                    print('message_frames')
+                    offset = message_frames.offset()
+                    
+                    frame_data = cv2.imdecode(np.frombuffer(message_frames.value(), 'u1'), cv2.IMREAD_UNCHANGED)
+                    detection_data = {'offset': offset, 'image': frame_data}
+                    self.detection_data_list.append(detection_data)
+                
+                if message_bboxes is True:
+                    continue
+                elif not message_bboxes:
+                    break
+                else:
+                    decoded_data = json.loads(message_bboxes.value().decode('utf-8'))
+                    bbox_data = {'offset': decoded_data['offset'], 'detection_results': decoded_data['detection_results']}
+                    self.bbox_data_list.append(bbox_data)
+                
+                
+                    print(f'len det {len(self.detection_data_list)}, bbox {len(self.bbox_data_list)}')
+                    if (len(self.bbox_data_list) >= 1 ) and (len(self.detection_data_list) >= 1):
+                        
+                        idx = min(count, len(self.bbox_data_list), len(self.detection_data_list)) 
+                        idx = idx -1
+                        
+                        self.process_frames(self.detection_data_list[idx], self.bbox_data_list[idx], idx)
+                        count += 1
+
+                        # Remove processed detection data
+                        # self.detection_data_list = [d for d in self.detection_data_list if d['offset'] != bbox_data['offset']]
+                
+                """ if (message_frames is None) or (message_bboxes is None) :
                     print('Waiting....')
                     # continue
-                
-                elif message.error():
-                    if message.error().code() == KafkaError._PARTITION_EOF:
+                #* Check errors of msg_frames
+                elif message_frames.error():
+                    if message_frames.error().code() == KafkaError._PARTITION_EOF:
                         continue
                     else:
-                        print(message.error())
+                        print(message_frames.error())
                         break
+                #* Check errors of msg_bboxes
+                elif message_bboxes.error():
+                    if message_bboxes.error().code() == KafkaError._PARTITION_EOF:
+                        continue
+                    else:
+                        print(message_bboxes.error())
+                        break
+                
                 else: 
-                    # stream = BytesIO(message.value())
-                    offset = message.offset()
+                    # stream = BytesIO(message_frames.value())
+                    offset = message_frames.offset()
                     
-                    # Check the topic and process accordingly
-                    if message.topic() == self.detection_topic:
-                        frame_data = cv2.imdecode(np.frombuffer(message.value(), 'u1'), cv2.IMREAD_UNCHANGED)
-                        detection_data = {'offset': offset, 'image': frame_data}
-                        self.detection_data_list.append(detection_data)
+                    frame_data = cv2.imdecode(np.frombuffer(message_frames.value(), 'u1'), cv2.IMREAD_UNCHANGED)
+                    detection_data = {'offset': offset, 'image': frame_data}
+                    self.detection_data_list.append(detection_data)
                         
-                    elif message.topic() == self.bbox_topic:
-                        decoded_data = json.loads(message.value().decode('utf-8'))
-                        bbox_data = {'offset': decoded_data['offset'], 'detection_results': decoded_data['detection_results']}
-                        self.bbox_data_list.append(bbox_data)
+                    decoded_data = json.loads(message_bboxes.value().decode('utf-8'))
+                    bbox_data = {'offset': decoded_data['offset'], 'detection_results': decoded_data['detection_results']}
+                    self.bbox_data_list.append(bbox_data)
                         
                     
                     print(f'len det {len(self.detection_data_list)}, bbox {len(self.bbox_data_list)}')
@@ -157,11 +238,11 @@ class KafkaPoseEstimation:
                         print(count)
                         # Remove processed detection data
                         # self.detection_data_list = [d for d in self.detection_data_list if d['offset'] != bbox_data['offset']]
-                    # stream.close()
+                    # stream.close() """
         except KeyboardInterrupt:
             pass
         finally:
-            self.consumer.close()
+            self.consumer_frames.close()
             
             
 if __name__ =="__main__":

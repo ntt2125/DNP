@@ -43,4 +43,4 @@ class KafkaFrameProducer:
 
 if __name__ == "__main__":
     kafka_producer = KafkaFrameProducer()
-    kafka_producer.send_video(video_path='demo_input/video/test_vid.mp4')
+    kafka_producer.send_video(video_path='demo_input/video/demo_2.mp4')

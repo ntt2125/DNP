@@ -12,7 +12,7 @@ Re-produce a system to detection, tracking and analysis student action.
 * OS: **Ubuntu 22.04**.
 * **Docker**, **Cuda 12.1** (cpu is oke but slower)
 * **Pytorch 2.1**
-* [Confluent kafka](https://confluent-kafka-python.readthedocs.io/en/latest/#)
+* [Confluent kafka](https://kafka-python.readthedocs.io/en/master/apidoc/KafkaConsumer.html#kafka.KafkaConsumer.poll)
 * **MUST** have more than 8gb of RAM
 * Familiar with [**Openmmlab**](https://github.com/open-mmlab), [**mmTracking**](https://github.com/open-mmlab/mmtracking), [**mmPose**](https://github.com/open-mmlab/mmpose), [**Ultralytics**](https://github.com/ultralytics/ultralytics)
 

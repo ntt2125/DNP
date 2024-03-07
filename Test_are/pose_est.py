@@ -22,6 +22,10 @@ from mmpose.utils import adapt_mmdet_pipeline
 from ultralytics import YOLO
 import cv2
 
+from pathlib import Path
+from boxmot import OCSORT
+
+
 def process_one_image(args,
                         img, 
                         visualizer,
@@ -45,7 +49,13 @@ def process_one_image(args,
     
     # predict keypoints
     pose_results = inference_topdown(pose_estimator, img, bboxes)
+    print(pose_results)
+    print('-------------------------------------')
     data_samples = merge_data_samples(pose_results)
+    print(data_samples)
+    
+    with open('log.json', 'w') as file:
+        json.dump(data_samples, file)
     
     # show the results
     if isinstance(img, str):
@@ -56,7 +66,7 @@ def process_one_image(args,
     if visualizer is not None:
         visualizer.add_datasample(
             'result',
-            img,
+            # img,
             data_sample = data_samples,
             draw_gt=False,
             draw_heatmap=args.draw_heatmap,
@@ -163,10 +173,11 @@ def main():
         args.pred_save_path = f'{args.output_root}/results_' \
             f'{os.path.splitext(os.path.basename(args.input))[0]}.json'
     
-    #detector
-    
+    # detector
     detector = YOLO('yolov8n.pt')
     
+    
+    # Tracker
     
 
     # build pose estimator
@@ -182,6 +193,7 @@ def main():
     pose_estimator.cfg.visualizer.alpha = args.alpha
     pose_estimator.cfg.visualizer.line_width = args.thickness
     visualizer = VISUALIZERS.build(pose_estimator.cfg.visualizer)
+    
     # the dataset_meta is loaded from the checkpoint and
     # then pass to the model in init_pose_estimator
     visualizer.set_dataset_meta(
@@ -196,18 +208,7 @@ def main():
 
     if input_type == 'image':
         
-        #inference
-        # det_result = detector(args.input, classes=0)
-        # bboxes = []
-        # for r in det_result:
-        #     boxes = r.boxes
-            
-        #     for box in boxes:
-        #         b = box.xyxy[0].cpu().numpy()
-        #         bboxes.append(b)
-            
-        # bboxes = np.stack(bboxes, axis=0)
-        # print(bboxes)
+        
         
         pred_instances = process_one_image(args, img=args.input, detector=detector, pose_estimator=pose_estimator, visualizer=visualizer)
         if args.save_predictions:
