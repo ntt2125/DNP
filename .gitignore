@@ -12,3 +12,6 @@ kafka/producer/vid.mp4
 
 #pose Checkpoints
 Config/Pose/CheckPoints/rtmpose-m_simcc-aic-coco_pt-aic-coco_420e-256x192-63eb25f7_20230126.pth
+
+# osnet weight
+osnet_x0_25_msmt17.pt

@@ -1,14 +1,16 @@
 from confluent_kafka.admin import AdminClient, NewTopic
 
+
 def create_topic():
-    
+
     a = AdminClient({'bootstrap.servers': 'localhost:9092'})
     config = {
         'num_partitions': 1,
         'replication_factor': 1
     }
 
-    new_topics = [NewTopic(topic, num_partitions=config['num_partitions'], replication_factor=config['replication_factor']) for topic in ["Frames", "Bboxes"]]
+    new_topics = [NewTopic(topic, num_partitions=config['num_partitions'],
+                           replication_factor=config['replication_factor']) for topic in ["Frames", "Bboxes"]]
     # Note: In a multi-cluster production scenario, it is more typical to use a replication_factor of 3 for durability.
 
     # Call create_topics to asynchronously create topics. A dict
@@ -22,6 +24,8 @@ def create_topic():
             print("Topic {} created".format(topic))
         except Exception as e:
             print("Failed to create topic {}: {}".format(topic, e))
+
+
 def list_topics():
     # Configure Kafka Admin Client
     bootstrap_servers = "localhost:9092"  # Example bootstrap servers

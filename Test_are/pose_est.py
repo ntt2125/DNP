@@ -27,58 +27,58 @@ from boxmot import OCSORT
 
 
 def process_one_image(args,
-                        img, 
-                        visualizer,
-                        # bboxes,
-                        detector,
-                        pose_estimator,
-                        show_interval=0):
-    
-    #predict bbox
+                      img,
+                      visualizer,
+                      # bboxes,
+                      detector,
+                      pose_estimator,
+                      show_interval=0):
+
+    # predict bbox
     det_result = detector(img, classes=0)
     bboxes = []
     for r in det_result:
         boxes = r.boxes
-            
+
         for box in boxes:
             b = box.xyxy[0].cpu().numpy()
             bboxes.append(b)
-    
+
     if not (not bboxes):
         bboxes = np.stack(bboxes, axis=0)
-    
+
     # predict keypoints
     pose_results = inference_topdown(pose_estimator, img, bboxes)
     print(pose_results)
     print('-------------------------------------')
     data_samples = merge_data_samples(pose_results)
     print(data_samples)
-    
+
     with open('log.json', 'w') as file:
         json.dump(data_samples, file)
-    
+
     # show the results
     if isinstance(img, str):
         img = mmcv.imread(img, channel_order='rgb')
     elif isinstance(img, np.ndarray):
         img = mmcv.bgr2rgb(img)
-    
+
     if visualizer is not None:
         visualizer.add_datasample(
             'result',
             # img,
-            data_sample = data_samples,
+            data_sample=data_samples,
             draw_gt=False,
             draw_heatmap=args.draw_heatmap,
             draw_bbox=args.draw_bbox,
-            show = args.show,
+            show=args.show,
             wait_time=show_interval,
             kpt_thr=args.kpt_thr
         )
     return data_samples.get('pred_instances', None)
 
+
 def main():
-    
     """Visualize the demo images.
 
     Using mmdet to detect the human.
@@ -172,13 +172,11 @@ def main():
         assert args.output_root != ''
         args.pred_save_path = f'{args.output_root}/results_' \
             f'{os.path.splitext(os.path.basename(args.input))[0]}.json'
-    
+
     # detector
     detector = YOLO('yolov8n.pt')
-    
-    
+
     # Tracker
-    
 
     # build pose estimator
     pose_estimator = init_pose_estimator(
@@ -187,30 +185,27 @@ def main():
         device=args.device,
         cfg_options=dict(
             model=dict(test_cfg=dict(output_heatmaps=args.draw_heatmap))))
-    
+
     # build visualizer
     pose_estimator.cfg.visualizer.radius = args.radius
     pose_estimator.cfg.visualizer.alpha = args.alpha
     pose_estimator.cfg.visualizer.line_width = args.thickness
     visualizer = VISUALIZERS.build(pose_estimator.cfg.visualizer)
-    
+
     # the dataset_meta is loaded from the checkpoint and
     # then pass to the model in init_pose_estimator
     visualizer.set_dataset_meta(
         pose_estimator.dataset_meta, skeleton_style=args.skeleton_style)
-    
-    
+
     if args.input == 'webcam':
         input_type = 'webcam'
     else:
         input_type = mimetypes.guess_type(args.input)[0].split('/')[0]
 
-
     if input_type == 'image':
-        
-        
-        
-        pred_instances = process_one_image(args, img=args.input, detector=detector, pose_estimator=pose_estimator, visualizer=visualizer)
+
+        pred_instances = process_one_image(
+            args, img=args.input, detector=detector, pose_estimator=pose_estimator, visualizer=visualizer)
         if args.save_predictions:
             pred_instances_list = split_instances(pred_instances)
 
@@ -218,8 +213,8 @@ def main():
             img_vis = visualizer.get_image()
             mmcv.imwrite(mmcv.rgb2bgr(img_vis), output_file)
 
-    elif input_type  in ['webcam', 'video']:
-        
+    elif input_type in ['webcam', 'video']:
+
         if args.input == 'webcam':
             cap = cv2.VideoCapture(0)
         else:
@@ -239,7 +234,7 @@ def main():
             # topdown pose estimation
             pred_instances = process_one_image(args, img=frame, detector=detector,
                                                pose_estimator=pose_estimator, visualizer=visualizer,
-                                               show_interval = 0.001)
+                                               show_interval=0.001)
 
             if args.save_predictions:
                 # save prediction results
@@ -290,10 +285,12 @@ def main():
                 f,
                 indent='\t')
         print(f'predictions have been saved at {args.pred_save_path}')
+
+
 if __name__ == "__main__":
-    
+
     main()
-    
+
     # model = YOLO('yolov8n.pt')
-    
+
     # result = model('demo.jpg', classes = 0)
