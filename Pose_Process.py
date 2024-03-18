@@ -25,12 +25,13 @@ from mmpose.utils import adapt_mmdet_pipeline
 
 
 class KafkaPoseEstimation:
-    def __init__(self, bootstrap_servers='localhost:9092', detection_topic='Frames', bbox_topic='Bboxes', group_id='pose_estimation') -> None:
+    def __init__(self, bootstrap_servers='localhost:9092', frame_topic='Frames', bbox_topic='Bboxes', log_topic = 'Logs', group_id='pose_estimation') -> None:
         self.bootstrap_servers = bootstrap_servers
-        self.detection_topic = detection_topic
+        self.frame_topic = frame_topic
         self.bbox_topic = bbox_topic
+        self.log_topic = log_topic
         self.group_id = group_id
-        self.detection_data_list = []
+        self.frame_data_list = []
         self.bbox_data_list = []
 
         self.pose_config = 'Config/Pose/Pose_config/rtmpose-m_8xb256-420e_coco-256x192.py'
@@ -62,6 +63,7 @@ class KafkaPoseEstimation:
         self.pose_estimator.cfg.visualizer.alpha = self.alpha
         self.pose_estimator.cfg.visualizer.line_width = self.thickness
         self.visualizer = VISUALIZERS.build(self.pose_estimator.cfg.visualizer)
+
         # the dataset_meta is loaded from the checkpoint and
         # then pass to the model in init_pose_estimator
         self.visualizer.set_dataset_meta(
@@ -77,17 +79,39 @@ class KafkaPoseEstimation:
 
         # * Frame's Consumer
         self.consumer_frames = Consumer(self.consumer_config)
-        self.consumer_frames.subscribe([self.detection_topic])
+        self.consumer_frames.subscribe([self.frame_topic])
 
         # * Bboxes Consumer
         self.consumer_bboxes = Consumer(self.consumer_config)
         self.consumer_bboxes.subscribe([self.bbox_topic])
 
         # *========================== PRODUCER =====================
+        # push the log to the topic - save or visualize
         self.producer_config = {
             'bootstrap.servers': self.bootstrap_servers
         }
         self.producer = Producer(self.producer_config)
+
+    def delivery_report(self, err, msg):
+        if err is not None:
+            print('Message delivery failed: {}'.format(err))
+        else:
+            print("Result delivered to topic: {}, partition: {}, offset: {}".format(
+                msg.topic(), msg.partition(), msg.offset()))
+
+    def log_to_topic(self, track_data, pose_keypoints):
+        log = {
+            'bboxs': track_data['detection_results'],
+            'inds': track_data['inds'],
+            'keypoint': pose_keypoints
+        }
+
+        self.producer.produce(
+            self.log_topic, value=json.dumps(
+                log, default=lambda x: x.tolist()
+            ).encode('utf-8'), callback=self.delivery_report
+        )
+        self.producer.poll(1)
 
     def handle_mgs(self, message):
         is_continue = True
@@ -106,20 +130,27 @@ class KafkaPoseEstimation:
         else:
             return message
 
-    def process_frames(self, detection_data, bbox_data, offset):
+    def process_frames(self, frame_data, bbox_data, offset, visual=None):
 
         # Perform pose estimation with the input
-        frame = detection_data['image']
+        frame = frame_data['image']
+        # print(bbox_data['detection_results'])
+        
+        # error when using slice with list, convert it to np first, use slice, then to array --- works :))
         pose_results = inference_topdown(
-            self.pose_estimator, frame, bbox_data['detection_results'])
+            self.pose_estimator, frame, np.array(bbox_data['detection_results'])[:, :4].tolist())
+
+        # print(pose_results)
         data_samples = merge_data_samples(pose_results)
+
+        # how to get the keypoit data.
 
         if isinstance(frame, str):
             frame = mmcv.imread(frame, channel_order='rgb')
         elif isinstance(frame, np.ndarray):
             frame = mmcv.bgr2rgb(frame)
 
-        if self.visualizer is not None:
+        if self.visualizer is not None and visual is not None:
             self.visualizer.add_datasample(
                 'result',
                 frame,
@@ -133,17 +164,18 @@ class KafkaPoseEstimation:
             )
 
         # * Send to the topic record
-
+        self.log_to_topic(track_data=bbox_data, pose_keypoints=data_samples.pred_instances.keypoints)
         print(f'Pose estimation for frame at offset {offset}')
+        # return data_samples.pred_instances.keypoints
 
     def receive_and_process_frames(self):
-        detection_data = None
+        frame_data = None
         bbox_data = None
         count = 1
 
         try:
             while True:
-                detection_data = None
+                frame_data = None
                 bbox_data = None
 
                 message_frames = self.consumer_frames.poll(1)
@@ -165,8 +197,8 @@ class KafkaPoseEstimation:
 
                     frame_data = cv2.imdecode(np.frombuffer(
                         message_frames.value(), 'u1'), cv2.IMREAD_UNCHANGED)
-                    detection_data = {'offset': offset, 'image': frame_data}
-                    self.detection_data_list.append(detection_data)
+                    frame_data = {'offset': offset, 'image': frame_data}
+                    self.frame_data_list.append(frame_data)
 
                 if message_bboxes is True:
                     continue
@@ -176,23 +208,23 @@ class KafkaPoseEstimation:
                     decoded_data = json.loads(
                         message_bboxes.value().decode('utf-8'))
                     bbox_data = {
-                        'offset': decoded_data['offset'], 'detection_results': decoded_data['detection_results']}
+                        'offset': decoded_data['offset'], 'detection_results': decoded_data['detection_results'], 'inds': decoded_data['inds']}
                     self.bbox_data_list.append(bbox_data)
 
                     print(
-                        f'len det {len(self.detection_data_list)}, bbox {len(self.bbox_data_list)}')
-                    if (len(self.bbox_data_list) >= 1) and (len(self.detection_data_list) >= 1):
+                        f'len det {len(self.frame_data_list)}, bbox {len(self.bbox_data_list)}')
+                    if (len(self.bbox_data_list) >= 1) and (len(self.frame_data_list) >= 1):
 
                         idx = min(count, len(self.bbox_data_list),
-                                  len(self.detection_data_list))
+                                  len(self.frame_data_list))
                         idx = idx - 1
 
                         self.process_frames(
-                            self.detection_data_list[idx], self.bbox_data_list[idx], idx)
+                            self.frame_data_list[idx], self.bbox_data_list[idx], idx)
                         count += 1
 
                         # Remove processed detection data
-                        # self.detection_data_list = [d for d in self.detection_data_list if d['offset'] != bbox_data['offset']]
+                        # self.frame_data_list = [d for d in self.frame_data_list if d['offset'] != bbox_data['offset']]
 
                 """ if (message_frames is None) or (message_bboxes is None) :
                     print('Waiting....')
@@ -217,26 +249,26 @@ class KafkaPoseEstimation:
                     offset = message_frames.offset()
                     
                     frame_data = cv2.imdecode(np.frombuffer(message_frames.value(), 'u1'), cv2.IMREAD_UNCHANGED)
-                    detection_data = {'offset': offset, 'image': frame_data}
-                    self.detection_data_list.append(detection_data)
+                    frame_data = {'offset': offset, 'image': frame_data}
+                    self.frame_data_list.append(frame_data)
                         
                     decoded_data = json.loads(message_bboxes.value().decode('utf-8'))
                     bbox_data = {'offset': decoded_data['offset'], 'detection_results': decoded_data['detection_results']}
                     self.bbox_data_list.append(bbox_data)
                         
                     
-                    print(f'len det {len(self.detection_data_list)}, bbox {len(self.bbox_data_list)}')
-                    if (len(self.bbox_data_list) >= 1 ) and (len(self.detection_data_list) >= 1):
+                    print(f'len det {len(self.frame_data_list)}, bbox {len(self.bbox_data_list)}')
+                    if (len(self.bbox_data_list) >= 1 ) and (len(self.frame_data_list) >= 1):
                         
-                        idx = min(count, len(self.bbox_data_list), len(self.detection_data_list)) 
+                        idx = min(count, len(self.bbox_data_list), len(self.frame_data_list)) 
                         idx = idx -1
                         
-                        self.process_frames(self.detection_data_list[idx], self.bbox_data_list[idx], idx)
+                        self.process_frames(self.frame_data_list[idx], self.bbox_data_list[idx], idx)
                         count += 1
 
                         print(count)
                         # Remove processed detection data
-                        # self.detection_data_list = [d for d in self.detection_data_list if d['offset'] != bbox_data['offset']]
+                        # self.frame_data_list = [d for d in self.frame_data_list if d['offset'] != bbox_data['offset']]
                     # stream.close() """
         except KeyboardInterrupt:
             pass

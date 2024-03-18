@@ -10,7 +10,7 @@ def create_topic():
     }
 
     new_topics = [NewTopic(topic, num_partitions=config['num_partitions'],
-                           replication_factor=config['replication_factor']) for topic in ["Frames", "Bboxes"]]
+                           replication_factor=config['replication_factor']) for topic in ["Frames", "Bboxes", "Logs"]]
     # Note: In a multi-cluster production scenario, it is more typical to use a replication_factor of 3 for durability.
 
     # Call create_topics to asynchronously create topics. A dict

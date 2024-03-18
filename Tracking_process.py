@@ -22,11 +22,12 @@ class KafkaHumanDetection:
         self.received_frames = []  # store all received frame
         self.model = YOLO('yolov8n.pt')
 
-        # self.tracker = DeepOCSORT(
-        #     model_weights=Path('osnet_x0_25_msmt17.pt'), # which ReID model to use
-        #     device='cuda:0',
-        #     fp16=False,
-        # )
+        self.tracker = DeepOCSORT(
+            # which ReID model to use
+            model_weights=Path('osnet_x0_25_msmt17.pt'),
+            device='cuda:0',
+            fp16=False,
+        )
 
         # ======== CONSUMER ===========
 
@@ -67,11 +68,11 @@ class KafkaHumanDetection:
         for r in results:
             boxes = r.boxes
             for box in boxes:
-                # get box coordinates (l, t, r, b)
-                b = box.xyxy[0].cpu().numpy()
+                # get box coordinates (l, t, r, b, cf, cls)
+                b = box.data[0].cpu().numpy()
 
                 bboxes.append(b)
-        #! Check if bboxes is empty or not
+        # ! Check if bboxes is empty or not
         if not (not bboxes):
             bboxes = np.stack(bboxes, axis=0)
 
@@ -79,8 +80,15 @@ class KafkaHumanDetection:
 
         # print(bboxes)
         # print(np.array(bboxes))
-        # tracks = self.tracker.update(np.array(bboxes), frame_data)
-        # detection_data['tracks'] =tracks
+        tracks = self.tracker.update(np.array(bboxes), frame_data)
+        print('this is tracks')
+        # print(tracks)
+
+        inds = tracks[:, 7].astype('int')
+
+        print(inds)
+
+        detection_data['inds'] = inds
 
         self.producer.produce(self.result_topic, value=json.dumps(
             detection_data, default=lambda x: x.tolist()).encode('utf-8'), callback=self.delivery_report)
