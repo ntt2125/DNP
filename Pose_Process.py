@@ -1,31 +1,20 @@
 from confluent_kafka import Consumer, Producer, KafkaError
-from io import BytesIO
 import json
 import cv2
 import numpy as np
 
-import logging
-import mimetypes
-import os
-import time
-from argparse import ArgumentParser
-
 import json_tricks as json
 import mmcv
-import mmengine
 import numpy as np
-from mmengine.logging import print_log
 
 from mmpose.apis import inference_topdown
 from mmpose.apis import init_model as init_pose_estimator
-from mmpose.evaluation.functional import nms
 from mmpose.registry import VISUALIZERS
 from mmpose.structures import merge_data_samples, split_instances
-from mmpose.utils import adapt_mmdet_pipeline
 
 
 class KafkaPoseEstimation:
-    def __init__(self, bootstrap_servers='localhost:9092', frame_topic='Frames', bbox_topic='Bboxes', log_topic = 'Logs', group_id='pose_estimation') -> None:
+    def __init__(self, bootstrap_servers='localhost:9092', frame_topic='Frames', bbox_topic='Bboxes', log_topic='Logs', group_id='pose_estimation') -> None:
         self.bootstrap_servers = bootstrap_servers
         self.frame_topic = frame_topic
         self.bbox_topic = bbox_topic
@@ -99,11 +88,13 @@ class KafkaPoseEstimation:
             print("Result delivered to topic: {}, partition: {}, offset: {}".format(
                 msg.topic(), msg.partition(), msg.offset()))
 
-    def log_to_topic(self, track_data, pose_keypoints):
+    def log_to_topic(self, track_data, pose_keypoints, keypoint_scores, img_shape):
         log = {
-            'bboxs': track_data['detection_results'],
+            'bboxes': track_data['detection_results'],
             'inds': track_data['inds'],
-            'keypoint': pose_keypoints
+            'keypoints': pose_keypoints,
+            'scores': keypoint_scores,
+            'img_shape': img_shape,
         }
 
         self.producer.produce(
@@ -135,7 +126,7 @@ class KafkaPoseEstimation:
         # Perform pose estimation with the input
         frame = frame_data['image']
         # print(bbox_data['detection_results'])
-        
+
         # error when using slice with list, convert it to np first, use slice, then to array --- works :))
         pose_results = inference_topdown(
             self.pose_estimator, frame, np.array(bbox_data['detection_results'])[:, :4].tolist())
@@ -164,20 +155,17 @@ class KafkaPoseEstimation:
             )
 
         # * Send to the topic record
-        self.log_to_topic(track_data=bbox_data, pose_keypoints=data_samples.pred_instances.keypoints)
+        self.log_to_topic(track_data=bbox_data,
+                          pose_keypoints=data_samples.pred_instances.keypoints,
+                          keypoint_scores=data_samples.pred_instances.keypoint_scores,
+                          img_shape=data_samples.img_shape)
         print(f'Pose estimation for frame at offset {offset}')
         # return data_samples.pred_instances.keypoints
 
     def receive_and_process_frames(self):
-        frame_data = None
-        bbox_data = None
-        count = 1
 
         try:
             while True:
-                frame_data = None
-                bbox_data = None
-
                 message_frames = self.consumer_frames.poll(1)
                 message_bboxes = self.consumer_bboxes.poll(1)
 
@@ -207,69 +195,18 @@ class KafkaPoseEstimation:
                 else:
                     decoded_data = json.loads(
                         message_bboxes.value().decode('utf-8'))
-                    bbox_data = {
-                        'offset': decoded_data['offset'], 'detection_results': decoded_data['detection_results'], 'inds': decoded_data['inds']}
-                    self.bbox_data_list.append(bbox_data)
+                    decoded_data['offset'] = message_bboxes.offset()
+                    self.bbox_data_list.append(decoded_data)
 
                     print(
                         f'len det {len(self.frame_data_list)}, bbox {len(self.bbox_data_list)}')
                     if (len(self.bbox_data_list) >= 1) and (len(self.frame_data_list) >= 1):
 
-                        idx = min(count, len(self.bbox_data_list),
-                                  len(self.frame_data_list))
-                        idx = idx - 1
+                        frame = self.frame_data_list.pop(0)
+                        bbox = self.bbox_data_list.pop(0)
 
                         self.process_frames(
-                            self.frame_data_list[idx], self.bbox_data_list[idx], idx)
-                        count += 1
-
-                        # Remove processed detection data
-                        # self.frame_data_list = [d for d in self.frame_data_list if d['offset'] != bbox_data['offset']]
-
-                """ if (message_frames is None) or (message_bboxes is None) :
-                    print('Waiting....')
-                    # continue
-                #* Check errors of msg_frames
-                elif message_frames.error():
-                    if message_frames.error().code() == KafkaError._PARTITION_EOF:
-                        continue
-                    else:
-                        print(message_frames.error())
-                        break
-                #* Check errors of msg_bboxes
-                elif message_bboxes.error():
-                    if message_bboxes.error().code() == KafkaError._PARTITION_EOF:
-                        continue
-                    else:
-                        print(message_bboxes.error())
-                        break
-                
-                else: 
-                    # stream = BytesIO(message_frames.value())
-                    offset = message_frames.offset()
-                    
-                    frame_data = cv2.imdecode(np.frombuffer(message_frames.value(), 'u1'), cv2.IMREAD_UNCHANGED)
-                    frame_data = {'offset': offset, 'image': frame_data}
-                    self.frame_data_list.append(frame_data)
-                        
-                    decoded_data = json.loads(message_bboxes.value().decode('utf-8'))
-                    bbox_data = {'offset': decoded_data['offset'], 'detection_results': decoded_data['detection_results']}
-                    self.bbox_data_list.append(bbox_data)
-                        
-                    
-                    print(f'len det {len(self.frame_data_list)}, bbox {len(self.bbox_data_list)}')
-                    if (len(self.bbox_data_list) >= 1 ) and (len(self.frame_data_list) >= 1):
-                        
-                        idx = min(count, len(self.bbox_data_list), len(self.frame_data_list)) 
-                        idx = idx -1
-                        
-                        self.process_frames(self.frame_data_list[idx], self.bbox_data_list[idx], idx)
-                        count += 1
-
-                        print(count)
-                        # Remove processed detection data
-                        # self.frame_data_list = [d for d in self.frame_data_list if d['offset'] != bbox_data['offset']]
-                    # stream.close() """
+                            frame_data=frame, bbox_data=bbox, offset=bbox['offset'])
         except KeyboardInterrupt:
             pass
         finally:

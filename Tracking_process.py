@@ -17,7 +17,6 @@ class KafkaHumanDetection:
         self.bootstrap_servers = bootstrap_servers
         self.detection_topic = detection_topic
         self.result_topic = result_topic
-        self.frame_count = 0
         self.group_id = group_id
         self.received_frames = []  # store all received frame
         self.model = YOLO('yolov8n.pt')
@@ -128,7 +127,6 @@ class KafkaHumanDetection:
 
                     self.latest_offset = message.offset()  # Get the offset of receive frame
 
-                    self.frame_count += 1
                     # self.process_frame(frame_data, offset)
                     # results = self.model(frame_data, save=False, show=True, project="output/detect", name='inference', exist_ok=False)
 

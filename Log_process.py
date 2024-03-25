@@ -1,11 +1,9 @@
 from io import BytesIO
-from confluent_kafka import Consumer, KafkaError, Producer, TopicPartition
+from confluent_kafka import Consumer, KafkaError
 
 import json
 import os
 # import numpy as np
-
-
 
 
 class KafkaLogging:
@@ -52,6 +50,7 @@ class KafkaLogging:
             pass
         finally:
             self.consumer.close()
+
 
 if __name__ == "__main__":
     Log = KafkaLogging()
