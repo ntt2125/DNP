@@ -18,11 +18,5 @@ osnet_x0_25_msmt17.pt
 
 
 # py_cache
-rtmlib/__pycache__
-rtmlib/tools/__pycache__
-rtmlib/visualization/__pycache__
-rtmlib/tools/object_detection/__pycache__
-rtmlib/tools/pose_estimation/__pycache__
-rtmlib/tools/solution/__pycache__
-rtmlib/tools/solution/utils/__pycache__
-rtmlib/visualization/skeleton/__pycache__
+**/__pycache__/
+

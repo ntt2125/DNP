@@ -1,4 +1,4 @@
-import logging
+
 import mimetypes
 import os
 import time
@@ -6,29 +6,26 @@ from argparse import ArgumentParser
 
 
 import cv2
-import json_tricks as json
 import mmcv
 import mmengine
 import numpy as np
-from mmengine.logging import print_log
 
-from mmpose.apis import inference_topdown
-from mmpose.apis import init_model as init_pose_estimator
-from mmpose.evaluation.functional import nms
-from mmpose.registry import VISUALIZERS
-from mmpose.structures import merge_data_samples, split_instances
-from mmpose.utils import adapt_mmdet_pipeline
+from Pose.apis import inference_topdown
+from Pose.apis import init_model as init_pose_estimator
+# from mmpose.registry import VISUALIZERS
+from Pose.structures import merge_data_samples, split_instances
+
 
 from ultralytics import YOLO
-import cv2
 
-from pathlib import Path
-from boxmot import OCSORT
+from mmengine.utils import is_list_of
+from Pose.structures.pose_data_sample import PoseDataSample
+
 
 
 def process_one_image(args,
                       img,
-                      visualizer,
+                     
                       # bboxes,
                       detector,
                       pose_estimator,
@@ -49,13 +46,12 @@ def process_one_image(args,
 
     # predict keypoints
     pose_results = inference_topdown(pose_estimator, img, bboxes)
-    print(pose_results)
+    print(pose_results[0].__class__)
+    print(isinstance(pose_results[0], PoseDataSample))
+    # print(is_list_of(pose_results, PoseDataSample))
     print('-------------------------------------')
     data_samples = merge_data_samples(pose_results)
     print(data_samples)
-
-    with open('log.json', 'w') as file:
-        json.dump(data_samples, file)
 
     # show the results
     if isinstance(img, str):
@@ -63,18 +59,7 @@ def process_one_image(args,
     elif isinstance(img, np.ndarray):
         img = mmcv.bgr2rgb(img)
 
-    if visualizer is not None:
-        visualizer.add_datasample(
-            'result',
-            # img,
-            data_sample=data_samples,
-            draw_gt=False,
-            draw_heatmap=args.draw_heatmap,
-            draw_bbox=args.draw_bbox,
-            show=args.show,
-            wait_time=show_interval,
-            kpt_thr=args.kpt_thr
-        )
+
     return data_samples.get('pred_instances', None)
 
 
@@ -190,12 +175,12 @@ def main():
     pose_estimator.cfg.visualizer.radius = args.radius
     pose_estimator.cfg.visualizer.alpha = args.alpha
     pose_estimator.cfg.visualizer.line_width = args.thickness
-    visualizer = VISUALIZERS.build(pose_estimator.cfg.visualizer)
+    # visualizer = VISUALIZERS.build(pose_estimator.cfg.visualizer)
 
     # the dataset_meta is loaded from the checkpoint and
     # then pass to the model in init_pose_estimator
-    visualizer.set_dataset_meta(
-        pose_estimator.dataset_meta, skeleton_style=args.skeleton_style)
+    # visualizer.set_dataset_meta(
+        # pose_estimator.dataset_meta, skeleton_style=args.skeleton_style)
 
     if args.input == 'webcam':
         input_type = 'webcam'
@@ -205,13 +190,13 @@ def main():
     if input_type == 'image':
 
         pred_instances = process_one_image(
-            args, img=args.input, detector=detector, pose_estimator=pose_estimator, visualizer=visualizer)
+            args, img=args.input, detector=detector, pose_estimator=pose_estimator)
         if args.save_predictions:
             pred_instances_list = split_instances(pred_instances)
 
-        if output_file:
-            img_vis = visualizer.get_image()
-            mmcv.imwrite(mmcv.rgb2bgr(img_vis), output_file)
+        # if output_file:
+        #     # img_vis = visualizer.get_image()
+        #     mmcv.imwrite(mmcv.rgb2bgr(img_vis), output_file)
 
     elif input_type in ['webcam', 'video']:
 
@@ -233,7 +218,7 @@ def main():
 
             # topdown pose estimation
             pred_instances = process_one_image(args, img=frame, detector=detector,
-                                               pose_estimator=pose_estimator, visualizer=visualizer,
+                                               pose_estimator=pose_estimator, 
                                                show_interval=0.001)
 
             if args.save_predictions:
@@ -244,20 +229,20 @@ def main():
                         instances=split_instances(pred_instances)))
 
             # output videos
-            if output_file:
-                frame_vis = visualizer.get_image()
+            # if output_file:
+            #     frame_vis = visualizer.get_image()
 
-                if video_writer is None:
-                    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-                    # the size of the image with visualization may vary
-                    # depending on the presence of heatmaps
-                    video_writer = cv2.VideoWriter(
-                        output_file,
-                        fourcc,
-                        25,  # saved fps
-                        (frame_vis.shape[1], frame_vis.shape[0]))
+            #     if video_writer is None:
+            #         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            #         # the size of the image with visualization may vary
+            #         # depending on the presence of heatmaps
+            #         video_writer = cv2.VideoWriter(
+            #             output_file,
+            #             fourcc,
+            #             25,  # saved fps
+            #             (frame_vis.shape[1], frame_vis.shape[0]))
 
-                video_writer.write(mmcv.rgb2bgr(frame_vis))
+            #     video_writer.write(mmcv.rgb2bgr(frame_vis))
 
             if args.show:
                 # press ESC to exit
@@ -276,15 +261,7 @@ def main():
         raise ValueError(
             f'file {os.path.basename(args.input)} has invalid format.')
 
-    if args.save_predictions:
-        with open(args.pred_save_path, 'w') as f:
-            json.dump(
-                dict(
-                    meta_info=pose_estimator.dataset_meta,
-                    instance_info=pred_instances_list),
-                f,
-                indent='\t')
-        print(f'predictions have been saved at {args.pred_save_path}')
+
 
 
 if __name__ == "__main__":
@@ -294,3 +271,4 @@ if __name__ == "__main__":
     # model = YOLO('yolov8n.pt')
 
     # result = model('demo.jpg', classes = 0)
+    # python -m Test_are.pose_est Config/Pose/Pose_config/rtmpose-m_8xb256-420e_coco-256x192.py   https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-m_simcc-aic-coco_pt-aic-coco_420e-256x192-63eb25f7_20230126.pth     --input webcam     --show --device cpu
