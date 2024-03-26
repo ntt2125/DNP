@@ -4,7 +4,7 @@ from typing import List, Tuple, Union
 import numpy as np
 from mmcv.transforms import BaseTransform
 
-from mmpose.registry import TRANSFORMS
+from Pose.registry import TRANSFORMS
 
 
 @TRANSFORMS.register_module()

@@ -7,8 +7,8 @@ from mmcv.transforms import BaseTransform
 from mmengine.structures import InstanceData, PixelData
 from mmengine.utils import is_seq_of
 
-from mmpose.registry import TRANSFORMS
-from mmpose.structures import MultilevelPixelData, PoseDataSample
+from Pose.registry import TRANSFORMS
+from Pose.structures import MultilevelPixelData, PoseDataSample
 
 
 def image_to_tensor(img: Union[np.ndarray,

@@ -13,6 +13,8 @@ from torch import Tensor
 from Pose.registry import MODELS
 from Pose.structures import PoseDataSample
 
+#! pure mmpose
+
 
 @MODELS.register_module()
 class BatchSyncRandomResize(nn.Module):

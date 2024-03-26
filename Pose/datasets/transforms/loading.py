@@ -4,7 +4,7 @@ from typing import Optional
 import numpy as np
 from mmcv.transforms import LoadImageFromFile
 
-from mmpose.registry import TRANSFORMS
+from Pose.registry import TRANSFORMS
 
 
 @TRANSFORMS.register_module()

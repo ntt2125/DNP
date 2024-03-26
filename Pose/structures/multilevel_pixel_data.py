@@ -11,7 +11,7 @@ IndexType = Union[str, slice, int, list, torch.LongTensor,
                   torch.cuda.LongTensor, torch.BoolTensor,
                   torch.cuda.BoolTensor, np.ndarray]
 
-
+#! pure mmpose
 class MultilevelPixelData(BaseDataElement):
     """Data structure for multi-level pixel-wise annotations or predictions.
 

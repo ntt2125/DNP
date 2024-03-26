@@ -14,11 +14,11 @@ from mmengine import is_list_of
 from mmengine.dist import get_dist_info
 from scipy.stats import truncnorm
 
-from mmpose.codecs import *  # noqa: F401, F403
-from mmpose.registry import KEYPOINT_CODECS, TRANSFORMS
-from mmpose.structures.bbox import bbox_xyxy2cs, flip_bbox
-from mmpose.structures.keypoint import flip_keypoints
-from mmpose.utils.typing import MultiConfig
+from Pose.codecs import *  # noqa: F401, F403
+from Pose.registry import KEYPOINT_CODECS, TRANSFORMS
+from Pose.structures.bbox import bbox_xyxy2cs, flip_bbox
+from Pose.structures.keypoint import flip_keypoints
+from Pose.utils.typing import MultiConfig
 
 try:
     import albumentations

@@ -5,8 +5,8 @@ from typing import Dict
 import numpy as np
 from mmcv.transforms import BaseTransform
 
-from mmpose.registry import TRANSFORMS
-from mmpose.structures.keypoint import flip_keypoints_custom_center
+from Pose.registry import TRANSFORMS
+from Pose.structures.keypoint import flip_keypoints_custom_center
 
 
 @TRANSFORMS.register_module()

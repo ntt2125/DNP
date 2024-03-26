@@ -6,8 +6,8 @@ import numpy as np
 from mmcv.transforms import BaseTransform
 from mmengine import is_seq_of
 
-from mmpose.registry import TRANSFORMS
-from mmpose.structures.bbox import get_udp_warp_matrix, get_warp_matrix
+from Pose.registry import TRANSFORMS
+from Pose.structures.bbox import get_udp_warp_matrix, get_warp_matrix
 
 
 @TRANSFORMS.register_module()

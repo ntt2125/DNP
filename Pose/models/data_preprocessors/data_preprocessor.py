@@ -9,6 +9,7 @@ from mmengine.utils import is_seq_of
 
 from Pose.registry import MODELS
 
+#! pure mmpose
 
 @MODELS.register_module()
 class PoseDataPreprocessor(ImgDataPreprocessor):

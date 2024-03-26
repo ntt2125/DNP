@@ -1,8 +1,8 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 from typing import List, Union
 
-from mmpose.codecs import *  # noqa: F401, F403
-from mmpose.registry import TRANSFORMS
+from Pose.codecs import *  # noqa: F401, F403
+from Pose.registry import TRANSFORMS
 from .common_transforms import RandomFlip
 
 
