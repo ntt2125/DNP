@@ -3,14 +3,14 @@ import json
 import cv2
 import numpy as np
 
-import json_tricks as json
-import mmcv
-import numpy as np
+# import json_tricks as json
+# import mmcv
+# import numpy as np
 
-from mmpose.apis import inference_topdown
-from mmpose.apis import init_model as init_pose_estimator
-from mmpose.registry import VISUALIZERS
-from mmpose.structures import merge_data_samples, split_instances
+from Pose.apis import inference_topdown
+from Pose.apis import init_model as init_pose_estimator
+# from Pose.registry import VISUALIZERS
+from Pose.structures import merge_data_samples
 
 
 class KafkaPoseEstimation:
@@ -48,15 +48,15 @@ class KafkaPoseEstimation:
 
         # * Build visualize
 
-        self.pose_estimator.cfg.visualizer.radius = self.radius
-        self.pose_estimator.cfg.visualizer.alpha = self.alpha
-        self.pose_estimator.cfg.visualizer.line_width = self.thickness
-        self.visualizer = VISUALIZERS.build(self.pose_estimator.cfg.visualizer)
+        # self.pose_estimator.cfg.visualizer.radius = self.radius
+        # self.pose_estimator.cfg.visualizer.alpha = self.alpha
+        # self.pose_estimator.cfg.visualizer.line_width = self.thickness
+        # self.visualizer = VISUALIZERS.build(self.pose_estimator.cfg.visualizer)
 
         # the dataset_meta is loaded from the checkpoint and
         # then pass to the model in init_pose_estimator
-        self.visualizer.set_dataset_meta(
-            self.pose_estimator.dataset_meta, skeleton_style=self.skeleton_style)
+        # self.visualizer.set_dataset_meta(
+        #     self.pose_estimator.dataset_meta, skeleton_style=self.skeleton_style)
 
         # *====================== CONSUMER =======================
 
@@ -136,23 +136,23 @@ class KafkaPoseEstimation:
 
         # how to get the keypoit data.
 
-        if isinstance(frame, str):
-            frame = mmcv.imread(frame, channel_order='rgb')
-        elif isinstance(frame, np.ndarray):
-            frame = mmcv.bgr2rgb(frame)
+        # if isinstance(frame, str):
+        #     frame = mmcv.imread(frame, channel_order='rgb')
+        # elif isinstance(frame, np.ndarray):
+        #     frame = mmcv.bgr2rgb(frame)
 
-        if self.visualizer is not None and visual is not None:
-            self.visualizer.add_datasample(
-                'result',
-                frame,
-                data_sample=data_samples,
-                draw_gt=False,
-                draw_heatmap=self.draw_heatmap,
-                draw_bbox=self.draw_bbox,
-                show=self.show,
-                wait_time=self.show_interval,
-                kpt_thr=self.kpt_thr
-            )
+        # if self.visualizer is not None and visual is not None:
+        #     self.visualizer.add_datasample(
+        #         'result',
+        #         frame,
+        #         data_sample=data_samples,
+        #         draw_gt=False,
+        #         draw_heatmap=self.draw_heatmap,
+        #         draw_bbox=self.draw_bbox,
+        #         show=self.show,
+        #         wait_time=self.show_interval,
+        #         kpt_thr=self.kpt_thr
+        #     )
 
         # * Send to the topic record
         self.log_to_topic(track_data=bbox_data,

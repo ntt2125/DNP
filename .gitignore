@@ -9,6 +9,9 @@ kafka/producer/producerConfig.ini
 #input vid test
 kafka/producer/vid.mp4
 
+output_video.avi
+
+log.json
 
 #pose Checkpoints
 Config/Pose/CheckPoints/rtmpose-m_simcc-aic-coco_pt-aic-coco_420e-256x192-63eb25f7_20230126.pth

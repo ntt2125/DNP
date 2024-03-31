@@ -18,7 +18,7 @@ class KafkaSaveVideo:
 
         self.output_video = 'output_video.avi'
         self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        self.video_writer = cv2.VideoWriter(self.output_video, self.fourcc, 20.0, (1920, 1080))
+        self.video_writer = cv2.VideoWriter(self.output_video, self.fourcc, 5.0, (1920, 1080))
         
         self.consumer_config = {
             'bootstrap.servers': self.bootstrap_servers,
@@ -55,9 +55,10 @@ class KafkaSaveVideo:
         keypoints = np.array(log['keypoints'])
         scores = np.array(log['scores'])
         bboxes = np.array(log['bboxes'])
-        img_shape = log['img_shape']
+        ids = np.array(log['inds'])
+        # img_shape = log['img_shape']
 
-        img = draw_bbox(img=frame['image'], bboxes=bboxes[:, :4])
+        img = draw_bbox(img=frame['image'], bboxes=bboxes[:, :4], ids=ids)
 
         img = draw_skeleton(img=img, keypoints=keypoints,
                             scores=scores, kpt_thr=0.2)

@@ -110,7 +110,7 @@ data_root = 'data/coco/'
 backend_args = dict(backend='local')
 
 # pipelines
-train_pipeline = [
+""" train_pipeline = [
     dict(type='LoadImage', backend_args=backend_args),
     dict(type='GetBBoxCenterScale'),
     dict(type='RandomFlip', direction='horizontal'),
@@ -136,7 +136,7 @@ train_pipeline = [
         ]),
     dict(type='GenerateTarget', encoder=codec),
     dict(type='PackPoseInputs')
-]
+] """
 val_pipeline = [
     dict(type='LoadImage', backend_args=backend_args),
     dict(type='GetBBoxCenterScale'),
@@ -144,7 +144,7 @@ val_pipeline = [
     dict(type='PackPoseInputs')
 ]
 
-train_pipeline_stage2 = [
+""" train_pipeline_stage2 = [
     dict(type='LoadImage', backend_args=backend_args),
     dict(type='GetBBoxCenterScale'),
     dict(type='RandomFlip', direction='horizontal'),
@@ -188,7 +188,7 @@ train_dataloader = dict(
         ann_file='annotations/person_keypoints_train2017.json',
         data_prefix=dict(img='train2017/'),
         pipeline=train_pipeline,
-    ))
+    )) """
 val_dataloader = dict(
     batch_size=val_batch_size,
     num_workers=10,
@@ -212,7 +212,7 @@ test_dataloader = val_dataloader
 default_hooks = dict(
     checkpoint=dict(save_best='coco/AP', rule='greater', max_keep_ckpts=1))
 
-custom_hooks = [
+""" custom_hooks = [
     dict(
         type='EMAHook',
         ema_type='ExpMomentumEMA',
@@ -224,7 +224,7 @@ custom_hooks = [
         switch_epoch=max_epochs - stage2_num_epochs,
         switch_pipeline=train_pipeline_stage2)
 ]
-
+"""
 # evaluators
 val_evaluator = dict(
     type='CocoMetric',

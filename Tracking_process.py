@@ -9,7 +9,7 @@ import json
 
 from pathlib import Path
 
-from boxmot import DeepOCSORT
+from boxmot import  OCSORT
 
 
 class KafkaHumanDetection:
@@ -21,12 +21,13 @@ class KafkaHumanDetection:
         self.received_frames = []  # store all received frame
         self.model = YOLO('yolov8n.pt')
 
-        self.tracker = DeepOCSORT(
-            # which ReID model to use
-            model_weights=Path('osnet_x0_25_msmt17.pt'),
-            device='cuda:0',
-            fp16=False,
-        )
+        # self.tracker = DeepOCSORT(
+        #     # which ReID model to use
+        #     model_weights=Path('osnet_x0_25_msmt17.pt'),
+        #     device='cuda:0',
+        #     fp16=False,
+        # )
+        self.tracker = OCSORT()
 
         # ======== CONSUMER ===========
 
