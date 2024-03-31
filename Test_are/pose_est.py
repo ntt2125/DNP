@@ -6,27 +6,20 @@ from argparse import ArgumentParser
 
 
 import cv2
-import mmcv
+import CV
 import mmengine
 import numpy as np
 
 from Pose.apis import inference_topdown
 from Pose.apis import init_model as init_pose_estimator
-# from mmpose.registry import VISUALIZERS
 from Pose.structures import merge_data_samples, split_instances
 
-
 from ultralytics import YOLO
-
-from mmengine.utils import is_list_of
 from Pose.structures.pose_data_sample import PoseDataSample
-
 
 
 def process_one_image(args,
                       img,
-                     
-                      # bboxes,
                       detector,
                       pose_estimator,
                       show_interval=0):
@@ -55,10 +48,9 @@ def process_one_image(args,
 
     # show the results
     if isinstance(img, str):
-        img = mmcv.imread(img, channel_order='rgb')
+        img = CV.imread(img, channel_order='rgb')
     elif isinstance(img, np.ndarray):
-        img = mmcv.bgr2rgb(img)
-
+        img = CV.bgr2rgb(img)
 
     return data_samples.get('pred_instances', None)
 
@@ -175,12 +167,6 @@ def main():
     pose_estimator.cfg.visualizer.radius = args.radius
     pose_estimator.cfg.visualizer.alpha = args.alpha
     pose_estimator.cfg.visualizer.line_width = args.thickness
-    # visualizer = VISUALIZERS.build(pose_estimator.cfg.visualizer)
-
-    # the dataset_meta is loaded from the checkpoint and
-    # then pass to the model in init_pose_estimator
-    # visualizer.set_dataset_meta(
-        # pose_estimator.dataset_meta, skeleton_style=args.skeleton_style)
 
     if args.input == 'webcam':
         input_type = 'webcam'
@@ -193,10 +179,6 @@ def main():
             args, img=args.input, detector=detector, pose_estimator=pose_estimator)
         if args.save_predictions:
             pred_instances_list = split_instances(pred_instances)
-
-        # if output_file:
-        #     # img_vis = visualizer.get_image()
-        #     mmcv.imwrite(mmcv.rgb2bgr(img_vis), output_file)
 
     elif input_type in ['webcam', 'video']:
 
@@ -218,7 +200,7 @@ def main():
 
             # topdown pose estimation
             pred_instances = process_one_image(args, img=frame, detector=detector,
-                                               pose_estimator=pose_estimator, 
+                                               pose_estimator=pose_estimator,
                                                show_interval=0.001)
 
             if args.save_predictions:
@@ -227,23 +209,6 @@ def main():
                     dict(
                         frame_id=frame_idx,
                         instances=split_instances(pred_instances)))
-
-            # output videos
-            # if output_file:
-            #     frame_vis = visualizer.get_image()
-
-            #     if video_writer is None:
-            #         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            #         # the size of the image with visualization may vary
-            #         # depending on the presence of heatmaps
-            #         video_writer = cv2.VideoWriter(
-            #             output_file,
-            #             fourcc,
-            #             25,  # saved fps
-            #             (frame_vis.shape[1], frame_vis.shape[0]))
-
-            #     video_writer.write(mmcv.rgb2bgr(frame_vis))
-
             if args.show:
                 # press ESC to exit
                 if cv2.waitKey(5) & 0xFF == 27:
@@ -260,8 +225,6 @@ def main():
         args.save_predictions = False
         raise ValueError(
             f'file {os.path.basename(args.input)} has invalid format.')
-
-
 
 
 if __name__ == "__main__":

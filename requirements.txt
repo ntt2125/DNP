@@ -1,2 +1,5 @@
 xtcocotools
 scipy
+boxmot
+ultralytics
+confluent-kafka

@@ -2,7 +2,7 @@
 from typing import Optional
 
 import numpy as np
-from mmcv.transforms import LoadImageFromFile
+from CV.transforms import LoadImageFromFile
 
 from Pose.registry import TRANSFORMS
 

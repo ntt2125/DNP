@@ -3,7 +3,7 @@ from typing import Sequence, Union
 
 import numpy as np
 import torch
-from mmcv.transforms import BaseTransform
+from CV.transforms import BaseTransform
 from mmengine.structures import InstanceData, PixelData
 from mmengine.utils import is_seq_of
 
