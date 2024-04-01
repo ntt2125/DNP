@@ -19,9 +19,11 @@ Config/Pose/CheckPoints/rtmpose-m_simcc-aic-coco_pt-aic-coco_420e-256x192-63eb25
 # osnet weight
 osnet_x0_25_msmt17.pt
 
+# output vid
 output_video_1.avi
 output_video.avi
 
 # py_cache
 **/__pycache__/
 
+.conda/
