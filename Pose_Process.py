@@ -135,8 +135,8 @@ class KafkaPoseEstimation:
 
         try:
             while True:
-                message_frames = self.consumer_frames.poll(0)
-                message_bboxes = self.consumer_bboxes.poll(0)
+                message_frames = self.consumer_frames.poll(0.5)
+                message_bboxes = self.consumer_bboxes.poll(0.5)
 
                 # print(message_frames)
                 message_frames = self.handle_mgs(message=message_frames)
