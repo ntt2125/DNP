@@ -1,8 +1,6 @@
 from confluent_kafka import Producer, KafkaError
 import cv2
-from datetime import datetime
-import json
-
+import time
 
 class KafkaFrameProducer:
     def __init__(self, bootstrap_servers='localhost:9092', topic='Frames') -> None:
@@ -13,6 +11,8 @@ class KafkaFrameProducer:
         }
         self.producer = Producer(self.producer_config)
         self.count = 0
+        self.HD = (1080, 720)
+        self.delay = 0.3
 
     def delivery_report(self, err, msg):
         if err is not None:
@@ -35,9 +35,10 @@ class KafkaFrameProducer:
             success, image = vidcap.read()
             if not success:
                 break
-
+            image = cv2.resize(image, self.HD)
             self.count += 1
             self.send_frame(image)
+            time.sleep(self.delay)
 
         vidcap.release()
         self.producer.flush()

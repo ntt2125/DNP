@@ -1,11 +1,12 @@
 from io import BytesIO
 from confluent_kafka import Consumer, KafkaError, Producer, TopicPartition
 from ultralytics import YOLO
-from ultralytics.utils.plotting import Annotator
+# from ultralytics.utils.plotting import Annotator
 
 import numpy as np
 import cv2
 import json
+import time
 
 from pathlib import Path
 
@@ -97,7 +98,8 @@ class KafkaHumanDetection:
     def receive_and_process_frames(self):
         try:
             while True:
-                message = self.consumer.poll(1.0)
+                message = self.consumer.poll(0)
+                time.sleep(0.6)
                 if message is None:
                     print('Waiting...')
                     # continue
@@ -109,33 +111,16 @@ class KafkaHumanDetection:
                         break
                 else:
 
-                    # partitions = self.consumer.assignment()
-                    # print(f'partitions: {partitions}')
-                    # for partition in partitions:
-                    #     first, last = self.consumer.get_watermark_offsets(partition)
-                    #     if (last -1) != self.latest_offset:
-                    #         print(f'first stack offset: {first}, Last stack offset: {last}')
-
-                    #         tp = TopicPartition(self.detection_topic, partition=0, offset=last-1)
-                    #         self.consumer.seek(tp)
-
-                    #         self.latest_offset = last -1
-                    #! What is this for?
-                    # stream = BytesIO(message.value())
-                    # print(stream)
                     frame_data = cv2.imdecode(np.frombuffer(
                         message.value(), 'u1'), cv2.IMREAD_UNCHANGED)
 
                     self.latest_offset = message.offset()  # Get the offset of receive frame
-
-                    # self.process_frame(frame_data, offset)
-                    # results = self.model(frame_data, save=False, show=True, project="output/detect", name='inference', exist_ok=False)
-
+                    
                     self.process_frame(frame_data=frame_data,
                                        offset=self.latest_offset)
                     print(f'============={self.latest_offset}===========')
 
-                    # stream.close()
+                    
         except KeyboardInterrupt:
             pass
         finally:

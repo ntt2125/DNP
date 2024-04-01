@@ -46,18 +46,6 @@ class KafkaPoseEstimation:
             cfg_options=dict(
                 model=dict(test_cfg=dict(output_heatmaps=self.draw_heatmap))))
 
-        # * Build visualize
-
-        # self.pose_estimator.cfg.visualizer.radius = self.radius
-        # self.pose_estimator.cfg.visualizer.alpha = self.alpha
-        # self.pose_estimator.cfg.visualizer.line_width = self.thickness
-        # self.visualizer = VISUALIZERS.build(self.pose_estimator.cfg.visualizer)
-
-        # the dataset_meta is loaded from the checkpoint and
-        # then pass to the model in init_pose_estimator
-        # self.visualizer.set_dataset_meta(
-        #     self.pose_estimator.dataset_meta, skeleton_style=self.skeleton_style)
-
         # *====================== CONSUMER =======================
 
         self.consumer_config = {
@@ -134,27 +122,8 @@ class KafkaPoseEstimation:
         # print(pose_results)
         data_samples = merge_data_samples(pose_results)
 
-        # how to get the keypoit data.
 
-        # if isinstance(frame, str):
-        #     frame = mmcv.imread(frame, channel_order='rgb')
-        # elif isinstance(frame, np.ndarray):
-        #     frame = mmcv.bgr2rgb(frame)
-
-        # if self.visualizer is not None and visual is not None:
-        #     self.visualizer.add_datasample(
-        #         'result',
-        #         frame,
-        #         data_sample=data_samples,
-        #         draw_gt=False,
-        #         draw_heatmap=self.draw_heatmap,
-        #         draw_bbox=self.draw_bbox,
-        #         show=self.show,
-        #         wait_time=self.show_interval,
-        #         kpt_thr=self.kpt_thr
-        #     )
-
-        # * Send to the topic record
+        # Send to the topic record
         self.log_to_topic(track_data=bbox_data,
                           pose_keypoints=data_samples.pred_instances.keypoints,
                           keypoint_scores=data_samples.pred_instances.keypoint_scores,
@@ -166,8 +135,8 @@ class KafkaPoseEstimation:
 
         try:
             while True:
-                message_frames = self.consumer_frames.poll(1)
-                message_bboxes = self.consumer_bboxes.poll(1)
+                message_frames = self.consumer_frames.poll(0)
+                message_bboxes = self.consumer_bboxes.poll(0)
 
                 # print(message_frames)
                 message_frames = self.handle_mgs(message=message_frames)

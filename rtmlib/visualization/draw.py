@@ -6,12 +6,12 @@ import numpy as np
 from .skeleton import *  # noqa
 
 
-def draw_bbox(img, bboxes, ids, color=(0, 255, 0), thickness=2, front_scale=0.6):
+def draw_bbox(img, bboxes, ids, color=(0, 255, 0),id_color = (255, 0, 0) ,thickness=2, front_scale=0.6):
     for bbox, id in zip(bboxes, ids):
         img = cv2.rectangle(img, (int(bbox[0]), int(bbox[1])),
                             (int(bbox[2]), int(bbox[3])), color, thickness)
         img = cv2.putText(img, f'id: {id}', (int(bbox[0]), int(
-            bbox[1])),  cv2.FONT_HERSHEY_SIMPLEX, fontScale=front_scale, thickness=thickness, color=color)
+            bbox[1])),  cv2.FONT_HERSHEY_SIMPLEX, fontScale=front_scale, thickness=thickness, color=id_color)
     return img
 
 # def draw_id(img, ids, color=(255, 255, 0)):
