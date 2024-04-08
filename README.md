@@ -20,13 +20,12 @@ Re-produce a system to detection, tracking and analysis student action.
 
 ### Installing
 
-* Install [Pytorch](https://pytorch.org/) with gpu or not
-
-* Because we use RTMPose from **mmPose** so follow the mmPose installation [here](https://mmpose.readthedocs.io/en/latest/installation.html) 
-
-* `pip install ultralytics`
-
-* `pip install confluent-kafka`
+```
+$ pip3 install torch torchvision torchaudio
+$ pip install -U openmim
+$ mim install mmengine
+$ pip install -r requirements.txt
+```
 
 
 ### Executing program
@@ -35,14 +34,22 @@ Re-produce a system to detection, tracking and analysis student action.
 ```
 docker compose up
 ```
-* Open 3 terminal window and run this by order.
+* Create topics first: `python create_topics.py`
+
+* Open 4 terminal window and run this by order.
 
 ```
-$ python producer.py
+$ python Save_video_process.py
+$ python Pose_process.py
+$ python Tracking_process.py
+$ python Read_frame_process.py
+```
 
-$ python detection_model.py
+* Or just one line
+```
+$ chmod +x run_local.sh
+$ ./run_local.sh
 
-$ python consumer.py
 ```
 
 ## Help
