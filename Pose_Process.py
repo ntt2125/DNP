@@ -76,13 +76,14 @@ class KafkaPoseEstimation:
             print("Result delivered to topic: {}, partition: {}, offset: {}".format(
                 msg.topic(), msg.partition(), msg.offset()))
 
-    def log_to_topic(self, track_data, pose_keypoints, keypoint_scores, img_shape):
+    def log_to_topic(self, track_data, pose_keypoints, keypoint_scores, img_shape, offset_frame):
         log = {
             'bboxes': track_data['detection_results'],
             'inds': track_data['inds'],
             'keypoints': pose_keypoints,
             'scores': keypoint_scores,
             'img_shape': img_shape,
+            'offset_frame': offset_frame,
         }
 
         self.producer.produce(
@@ -127,7 +128,7 @@ class KafkaPoseEstimation:
         self.log_to_topic(track_data=bbox_data,
                           pose_keypoints=data_samples.pred_instances.keypoints,
                           keypoint_scores=data_samples.pred_instances.keypoint_scores,
-                          img_shape=data_samples.img_shape)
+                          img_shape=data_samples.img_shape, offset_frame=offset)
         print(f'Pose estimation for frame at offset {offset}')
         # return data_samples.pred_instances.keypoints
 
@@ -164,18 +165,31 @@ class KafkaPoseEstimation:
                 else:
                     decoded_data = json.loads(
                         message_bboxes.value().decode('utf-8'))
-                    decoded_data['offset'] = message_bboxes.offset()
+                    # decoded_data['offset'] = message_bboxes.offset()
                     self.bbox_data_list.append(decoded_data)
+                    # ! how we handle the synchronization
 
                     print(
-                        f'len det {len(self.frame_data_list)}, bbox {len(self.bbox_data_list)}')
-                    if (len(self.bbox_data_list) >= 1) and (len(self.frame_data_list) >= 1):
+                        f'len frame {len(self.frame_data_list)}, bbox {len(self.bbox_data_list)}')
+                    
+                    if (len(self.bbox_data_list) >= 1) and (len(self.frame_data_list) >= 1): # ! need to change this condition
 
-                        frame = self.frame_data_list.pop(0)
-                        bbox = self.bbox_data_list.pop(0)
+                        if self.frame_data_list[-1]['offset'] >= self.bbox_data_list[0]['offset']:
+                        
+                        # frame = self.frame_data_list.pop(0)
+                            bbox = self.bbox_data_list.pop(0)
+                            for i in range(len(self.frame_data_list)):
+                                if self.frame_data_list[i]['offset'] == bbox['offset']:
+                                    
+                                    a = self.frame_data_list[i]['offset']
+                                    b = bbox['offset']
+                                    print(f'frame offset: {a}, bbox offset: {b}' )
+                                    self.process_frames(
+                                        frame_data=self.frame_data_list[i], bbox_data=bbox, offset=bbox['offset'])
+                                
+                                    self.frame_data_list[:i] = []
+                                    break
 
-                        self.process_frames(
-                            frame_data=frame, bbox_data=bbox, offset=bbox['offset'])
         except KeyboardInterrupt:
             pass
         finally:

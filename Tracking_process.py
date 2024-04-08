@@ -118,8 +118,9 @@ class KafkaHumanDetection:
                     # Drop frame 
                     # get the laest offset of every poll
                     
-                    # latest_offset_topic = TopicPartition(self.detection_topic,partition=0, offset=OFFSET_END)
+                    latest_offset_topic = TopicPartition(self.detection_topic,partition=0, offset=OFFSET_END)
                     
+                    self.consumer.assign([latest_offset_topic])
                     
                     
                     frame_data = cv2.imdecode(np.frombuffer(

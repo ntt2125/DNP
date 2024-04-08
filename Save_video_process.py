@@ -108,13 +108,25 @@ class KafkaSaveVideo:
                     print(
                         f'len det {len(self.frame_data_list)}, bbox {len(self.log_data_list)}')
                     if (len(self.log_data_list) >= 1) and (len(self.frame_data_list) >= 1):
+                        
+                        if self.frame_data_list[-1]['offset'] >= self.log_data_list[0]['offset_frame']:
+                        
+                        # frame = self.frame_data_list.pop(0)
+                            log = self.log_data_list.pop(0)
+                            for i in range(len(self.frame_data_list)):
+                                if self.frame_data_list[i]['offset'] == log['offset_frame']:
+                                    
+                                    frame_offset = self.frame_data_list[i]['offset']
+                                    log_offset = log['offset_frame']
+                                    print(f'frame offset: {frame_offset}, log offset: {log_offset}' )
+                                    
+                                    img = self.process_frames(
+                            frame=self.frame_data_list[i], log=log, offset=frame_offset)
+                                    self.video_writer.write(img)
+                                    self.frame_data_list[:i] = []
+                                    break
 
-                        log = self.log_data_list.pop(0)
-                        frame = self.frame_data_list.pop(0)
-
-                        img = self.process_frames(
-                            frame=frame, log=log, offset=frame['offset'])
-                        self.video_writer.write(img)
+                        
                         
 
         except KeyboardInterrupt:
