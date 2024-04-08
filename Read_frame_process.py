@@ -12,6 +12,7 @@ class KafkaFrameProducer:
         self.producer = Producer(self.producer_config)
         self.count = 0
         self.HD = (1080, 720)
+        self.FHD = (1920, 1080)
         self.delay = 0.3
 
     def delivery_report(self, err, msg):
@@ -35,7 +36,7 @@ class KafkaFrameProducer:
             success, image = vidcap.read()
             if not success:
                 break
-            image = cv2.resize(image, self.HD)
+            image = cv2.resize(image, self.FHD)
             self.count += 1
             self.send_frame(image)
             time.sleep(self.delay)

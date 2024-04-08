@@ -25,7 +25,7 @@ class KafkaPoseEstimation:
 
         self.pose_config = 'Config/Pose/Pose_config/rtmpose-m_8xb256-420e_coco-256x192.py'
         self.pose_checkpoint = 'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-m_simcc-aic-coco_pt-aic-coco_420e-256x192-63eb25f7_20230126.pth'
-        self.device = 'cpu'
+        self.device = 'cuda'
         self.draw_heatmap = False
 
         self.radius = 3

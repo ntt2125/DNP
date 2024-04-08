@@ -6,7 +6,7 @@ import numpy as np
 from .skeleton import *  # noqa
 
 
-def draw_bbox(img, bboxes, ids, color=(0, 255, 0),id_color = (255, 0, 0) ,thickness=2, front_scale=0.6):
+def draw_bbox(img, bboxes, ids, color=(0, 255, 0),id_color = (200, 0, 0) ,thickness=1, front_scale=0.6):
     for bbox, id in zip(bboxes, ids):
         img = cv2.rectangle(img, (int(bbox[0]), int(bbox[1])),
                             (int(bbox[2]), int(bbox[3])), color, thickness)
@@ -22,8 +22,8 @@ def draw_skeleton(img,
                   scores,
                   openpose_skeleton=False,
                   kpt_thr=0.5,
-                  radius=2,
-                  line_width=2):
+                  radius=1,
+                  line_width=1):
     num_keypoints = keypoints.shape[1]
 
     if openpose_skeleton:

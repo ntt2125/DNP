@@ -1,5 +1,6 @@
 # yolo pretrained weight
 yolov8n.pt
+yolov8s.pt
 
 # config file
 kafka/consumer/consumerConfig.ini

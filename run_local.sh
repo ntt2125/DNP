@@ -11,7 +11,7 @@ unset GTK_PATH
 
 source activate $ENVS
 
-#python "$DIRS/create_topics.py"
+python "$DIRS/create_topics.py"
 
 # If you dont want the terminal showed up, delete all "gnome-terminal -- "
 

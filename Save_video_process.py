@@ -15,10 +15,13 @@ class KafkaSaveVideo:
 
         self.frame_data_list = []
         self.log_data_list = []
+        self.FHD = (1920, 1080)
+        self.HD = (1080, 720)
+        
 
         self.output_video = 'output_video_1.avi'
         self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        self.video_writer = cv2.VideoWriter(self.output_video, self.fourcc, 25.0, (1080, 720))
+        self.video_writer = cv2.VideoWriter(self.output_video, self.fourcc, 10.0, self.FHD)
         
         self.consumer_config = {
             'bootstrap.servers': self.bootstrap_servers,

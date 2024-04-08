@@ -1,5 +1,5 @@
 from io import BytesIO
-from confluent_kafka import Consumer, KafkaError, Producer, TopicPartition
+from confluent_kafka import Consumer, KafkaError, Producer, TopicPartition, OFFSET_END
 from ultralytics import YOLO
 # from ultralytics.utils.plotting import Annotator
 
@@ -10,7 +10,7 @@ import time
 
 from pathlib import Path
 
-from boxmot import  OCSORT
+from boxmot import  OCSORT, DeepOCSORT
 
 
 class KafkaHumanDetection:
@@ -20,14 +20,16 @@ class KafkaHumanDetection:
         self.result_topic = result_topic
         self.group_id = group_id
         self.received_frames = []  # store all received frame
-        self.model = YOLO('yolov8n.pt')
+        self.model = YOLO('yolov8s.pt')
 
+        # ========== Tracker ==========
         # self.tracker = DeepOCSORT(
         #     # which ReID model to use
         #     model_weights=Path('osnet_x0_25_msmt17.pt'),
         #     device='cuda:0',
         #     fp16=False,
         # )
+        
         self.tracker = OCSORT()
 
         # ======== CONSUMER ===========
@@ -80,15 +82,18 @@ class KafkaHumanDetection:
         detection_data['detection_results'] = bboxes
 
         # print(bboxes)
-        # print(np.array(bboxes))
+        print(np.array(bboxes).shape)
         tracks = self.tracker.update(np.array(bboxes), frame_data)
+        
+        print(id(self.tracker))
         print('this is tracks')
         # print(tracks)
 
-        inds = tracks[:, 7].astype('int')
+        inds = tracks[:, 4].astype('int')
 
+        print(inds.shape)
         print(inds)
-
+        
         detection_data['inds'] = inds
 
         self.producer.produce(self.result_topic, value=json.dumps(
@@ -110,7 +115,13 @@ class KafkaHumanDetection:
                         print(message.error())
                         break
                 else:
-
+                    # Drop frame 
+                    # get the laest offset of every poll
+                    
+                    # latest_offset_topic = TopicPartition(self.detection_topic,partition=0, offset=OFFSET_END)
+                    
+                    
+                    
                     frame_data = cv2.imdecode(np.frombuffer(
                         message.value(), 'u1'), cv2.IMREAD_UNCHANGED)
 
