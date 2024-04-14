@@ -34,12 +34,18 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
 
-  read_frame_process:
-    image: dnp_3
-    container_name: read_frame_process
+  save_vid_process:
+    image: dnp_3:1.0.1
+    container_name: save_vid_process
     stdin_open: true
     tty: true
-    # command: nvidia-smi
+    # replace this with .sh file
+    command: > 
+              bash -c "
+              sleep 5 &&
+              python3 create_topics.py &&
+              python3 Save_video_process.py
+              "
     deploy:
       resources:
         reservations:
@@ -50,4 +56,22 @@ services:
     depends_on:
       - broker
     
-
+  pose_process:
+    image: dnp_3:1.0.1
+    container_name: pose_process
+    stdin_open: true
+    tty: true
+    # replace this with .sh file
+    command: > 
+              bash -c "
+              python3 Pose_Process.py
+              "
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    depends_on:
+      - broker
