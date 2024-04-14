@@ -1,9 +1,9 @@
 from confluent_kafka.admin import AdminClient, NewTopic
-
+from config import *
 
 def create_topic():
 
-    a = AdminClient({'bootstrap.servers': 'localhost:9092'})
+    a = AdminClient({'bootstrap.servers': BOOTSTRAP_SERVERS})
     config = {
         'num_partitions': 1,
         'replication_factor': 1
@@ -28,7 +28,7 @@ def create_topic():
 
 def list_topics():
     # Configure Kafka Admin Client
-    bootstrap_servers = "localhost:9092"  # Example bootstrap servers
+    bootstrap_servers = BOOTSTRAP_SERVERS  # Example bootstrap servers
     admin_client = AdminClient({"bootstrap.servers": bootstrap_servers})
 
     # List Topics

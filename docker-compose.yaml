@@ -12,8 +12,9 @@ services:
   broker:
     image: confluentinc/cp-kafka:7.3.0
     container_name: broker_ntt
-    ports:
-      - "9092:9092"
+    # ports:
+    #   - "9092:9092"
+    hostname: broker
     depends_on:
       - zookeeper
     environment:
@@ -32,3 +33,21 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+
+  read_frame_process:
+    image: dnp_3
+    container_name: read_frame_process
+    stdin_open: true
+    tty: true
+    # command: nvidia-smi
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    depends_on:
+      - broker
+    
+

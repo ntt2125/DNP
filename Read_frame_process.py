@@ -2,8 +2,9 @@ from confluent_kafka import Producer, KafkaError
 import cv2
 import time
 
+from config import *
 class KafkaFrameProducer:
-    def __init__(self, bootstrap_servers='localhost:9092', topic='Frames') -> None:
+    def __init__(self, bootstrap_servers=BOOTSTRAP_SERVERS, topic='Frames') -> None:
         self.bootstrap_servers = bootstrap_servers
         self.topic = topic
         self.producer_config = {

@@ -5,9 +5,10 @@ import cv2
 import numpy as np
 import json
 
+from config import *
 
 class KafkaSaveVideo:
-    def __init__(self, bootstrap_servers='localhost:9092', frame_topic='Frames', log_topic='Logs', group_id='save_vid') -> None:
+    def __init__(self, bootstrap_servers=BOOTSTRAP_SERVERS, frame_topic='Frames', log_topic='Logs', group_id='save_vid') -> None:
         self.bootstrap_servers = bootstrap_servers
         self.frame_topic = frame_topic
         self.log_topic = log_topic

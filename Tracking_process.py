@@ -12,14 +12,17 @@ from pathlib import Path
 
 from boxmot import  OCSORT, DeepOCSORT
 
+from config import *
+
 
 class KafkaHumanDetection:
-    def __init__(self, bootstrap_servers='localhost:9092', detection_topic='Frames', result_topic='Bboxes', group_id='detection') -> None:
+    def __init__(self, bootstrap_servers=BOOTSTRAP_SERVERS, detection_topic='Frames', result_topic='Bboxes', group_id='detection') -> None:
         self.bootstrap_servers = bootstrap_servers
         self.detection_topic = detection_topic
         self.result_topic = result_topic
         self.group_id = group_id
         self.received_frames = []  # store all received frame
+        
         self.model = YOLO('yolov8s.pt')
 
         # ========== Tracker ==========
