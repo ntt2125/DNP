@@ -75,3 +75,43 @@ services:
               capabilities: [gpu]
     depends_on:
       - broker
+
+  tracking_process:
+    image: dnp_3:1.0.1
+    container_name: tracking_process
+    stdin_open: true
+    tty: true
+    # replace this with .sh file
+    command: > 
+              bash -c "
+              python3 Tracking_process.py
+              "
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    depends_on:
+      - broker
+
+  read_frame_process:
+    image: dnp_3:1.0.1
+    container_name: read_frame_process
+    stdin_open: true
+    tty: true
+    # replace this with .sh file
+    command: > 
+              bash -c "
+              python3 Read_frame_process.py
+              "
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    depends_on:
+      - broker
